@@ -35,7 +35,7 @@ def parse_speedtest_meta(start_time, finish_time, file_path):
     return meta
 
 def run_speedtest():
-    os.system("/home/pi/auto_speed_test/speedtest-cli > " + speedtest_file_name)
+    os.system("/home/pi/.local/bin/speedtest-cli > " + speedtest_file_name)
    
 def csv_write_meta():
     with open(csv_file_name, 'a', newline='') as csv_file:
