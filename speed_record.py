@@ -57,7 +57,6 @@ def excel_write_meta(meta):
             write_sheet = wb[date_str]
             row_idx = write_sheet.max_row + 1
         else:
-            wb = openpyxl.Workbook()
             wb.create_sheet(date_str)
             write_sheet = wb[date_str]
     else:
