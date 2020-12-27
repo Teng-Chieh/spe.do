@@ -8,10 +8,15 @@ import os
 import time
 import csv
 import schedule
+import google_spreadsheet_api
 
 csv_file_name = "ouput.csv"
 excel_file_name = "output.xlsx"
 speedtest_file_name = "speedtest_out"
+
+google_sheet_id = '1FjHcBYx0Sdxw1oYggY7nkwdqwjxH5-TPe6pxmmFJ_ns'
+google_sheet_name = 'spe.result'
+
 
 def parse_speedtest_meta(start_time, finish_time, file_path):
     fp = open(file_path, 'r')  
@@ -37,14 +42,14 @@ def parse_speedtest_meta(start_time, finish_time, file_path):
 def run_speedtest():
     os.system("/home/pi/.local/bin/speedtest-cli > " + speedtest_file_name)
    
-def csv_write_meta():
+def write_data_to_csv():
     with open(csv_file_name, 'a', newline='') as csv_file:
         fwrite = csv.writer(csv_file)
         fwrite.writerow(['a', 'b', 'c'])
         fwrite.writerow(['a1', 'b1', 'c1'])
         fwrite.writerow(['2a', 'b', 'c'])
 
-def excel_write_meta(meta):
+def write_data_to_excel(meta):
 
     column_idx = 1
     row_idx = 1
@@ -74,6 +79,12 @@ def excel_write_meta(meta):
 
     wb.save(excel_file_name)
 
+def write_data_to_google_sheet(g_api, meta):
+    if not g_api.is_init_done:
+        g_api.init(google_sheet_id, google_sheet_name)
+    g_api.write_data(meta)
+
+
 def __task():
     start_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     print("speed-test beginning ... %s" % start_time)
@@ -81,7 +92,10 @@ def __task():
     finish_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     print("speed-test done ... %s" % finish_time)
     meta = parse_speedtest_meta(start_time, finish_time, speedtest_file_name)
-    excel_write_meta(meta)
+    write_data_to_excel(meta)
+
+    sheet_api = google_spreadsheet_api.Sheets_Logging()
+    write_data_to_google_sheet(sheet_api, meta)
 
 def main():
     print("__ start ++")
