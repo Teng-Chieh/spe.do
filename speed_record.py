@@ -17,16 +17,27 @@ speedtest_file_name = "speedtest_out"
 google_sheet_id = '1FjHcBYx0Sdxw1oYggY7nkwdqwjxH5-TPe6pxmmFJ_ns'
 google_sheet_name = 'spe.result'
 
+def_speed_test_success_lines = 9
+
 
 def parse_speedtest_meta(start_time, finish_time, file_path):
     fp = open(file_path, 'r')  
     lines = fp.readlines()
 
-    provider = (lines[1].split(" from ")[1]).split("...")[0]
-    server = (lines[4].split(" by ")[1]).split(": ")[0]
-    ping = ((lines[4].split(" by ")[1]).split(": ")[1]).split(" ")[0]
-    dl_speed = lines[6].split(" ")[1]
-    ul_speed = lines[8].split(" ")[1]
+    print("lines = ", len(lines))
+
+    if len(lines) == def_speed_test_success_lines:
+        provider = (lines[1].split(" from ")[1]).split("...")[0]
+        server = (lines[4].split(" by ")[1]).split(": ")[0]
+        ping = ((lines[4].split(" by ")[1]).split(": ")[1]).split(" ")[0]
+        dl_speed = lines[6].split(" ")[1]
+        ul_speed = lines[8].split(" ")[1]
+    else:
+        provider = "UNKNOWN, CONNECT FAIL"
+        server = "UNKNOWN, CONNECT FAIL"
+        ping = "0"
+        dl_speed = "0"
+        ul_speed = "0"
 
     meta = []
     meta.append(start_time)
@@ -79,10 +90,20 @@ def write_data_to_excel(meta):
 
     wb.save(excel_file_name)
 
-def write_data_to_google_sheet(g_api, meta):
-    if not g_api.is_init_done:
-        g_api.init(google_sheet_id, google_sheet_name)
-    g_api.write_data(meta)
+def write_data_to_google_sheet(g_api, meta, retry_cnt):
+    while True:
+        try:
+            if not g_api.is_init_done:
+                g_api.init(google_sheet_id, google_sheet_name)
+            g_api.write_data(meta)
+            break
+        except:
+            if retry_cnt > 0:
+                retry_cnt = retry_cnt - 1
+                print("Retry update google sheet")
+                continue
+            else:
+                break
 
 
 def __task():
@@ -95,7 +116,7 @@ def __task():
     write_data_to_excel(meta)
 
     sheet_api = google_spreadsheet_api.Sheets_Logging()
-    write_data_to_google_sheet(sheet_api, meta)
+    write_data_to_google_sheet(sheet_api, meta, 3)
 
 def main():
     print("__ start ++")
@@ -107,6 +128,8 @@ def main():
     schedule.every().hour.at(":20").do(__task)
     schedule.every().hour.at(":35").do(__task)
     schedule.every().hour.at(":50").do(__task)
+
+    #t print(parse_speedtest_meta(1, 1, speedtest_file_name))
 
     while True:
         schedule.run_pending()
